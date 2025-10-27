@@ -672,6 +672,8 @@ with st.sidebar:
         help="회의록을 저장할 공간 (매번 변경 가능)"
     )
     
+    st.markdown("**상위 페이지 ID (선택사항)**")
+    
     with st.expander("❓ 상위 페이지 ID 확인 방법", expanded=False):
         st.markdown("""
 **회의록을 특정 페이지 하위에 생성하려면:**
@@ -690,10 +692,11 @@ with st.sidebar:
         """)
     
     user_confluence_parent_id = st.text_input(
-        "상위 페이지 ID (선택사항)",
+        "상위 페이지 ID 입력",
         value=st.session_state.user_confluence_parent_id,
         placeholder="예: 123456789 (비워두면 루트에 생성)",
-        help="특정 페이지 하위에 회의록 생성"
+        help="특정 페이지 하위에 회의록 생성",
+        label_visibility="collapsed"
     )
     
     st.markdown("---")
