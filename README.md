@@ -1,0 +1,128 @@
+# 🤖 회의록 자동화 시스템
+
+AI가 회의록을 자동으로 구조화하고 Confluence와 Slack에 공유하는 시스템입니다.
+
+## 🚀 실행 방법
+
+### 방법 1: 스크립트 더블클릭 (가장 쉬움!)
+
+1. Finder에서 `meeting-automation` 폴더 열기
+2. `start.sh` 파일 찾기
+3. **더블클릭!** 🖱️
+
+> **처음 실행 시**: "신뢰할 수 없는 개발자" 경고가 나오면
+> → 우클릭 → "열기" → "열기" 버튼 클릭
+
+### 방법 2: 터미널에서 실행
+
+```bash
+cd /Users/seonju/Desktop/BaeminWorkspace/meeting-automation
+./start.sh
+```
+
+### 방법 3: 수동 실행
+
+```bash
+cd /Users/seonju/Desktop/BaeminWorkspace/meeting-automation
+python3 -m streamlit run app.py
+```
+
+---
+
+## 🌐 접속 주소
+
+시작하면 자동으로 브라우저가 열립니다.
+직접 접속: **http://localhost:8501**
+
+---
+
+## ⏹️ 종료 방법
+
+터미널 창에서 `Ctrl + C` (또는 Command + C)
+
+---
+
+## ✨ 주요 기능
+
+- ✅ 회의록 자동 구조화
+- ✅ 액션아이템 AI 자동 추출
+- ✅ Confluence 자동 업로드 (캘린더 통합)
+- ✅ Slack 자동 공유
+- ✅ 체크박스 실시간 편집
+- ✅ **개인 설정 지원** (각자 계정으로 작성)
+
+---
+
+## 🔧 첫 사용 설정
+
+### 1. Confluence API Token 발급
+
+1. [Confluence 설정 페이지](https://id.atlassian.com/manage-profile/security/api-tokens) 접속
+2. "Create API token" 클릭
+3. 이름 입력 (예: 회의록봇)
+4. Token 복사
+5. 앱 사이드바에 붙여넣기
+
+### 2. 앱에서 설정
+
+1. 웹 앱 실행 후 **사이드바** 열기
+2. 다음 정보 입력:
+   - Confluence 이메일
+   - Confluence API Token
+   - 기본 공간 키 (예: `TEAM-A`, `~username`)
+   - 기본 채널 (예: `#team-a`)
+3. "💾 설정 저장" 클릭
+
+### 3. Private 채널 사용 시
+
+Slack Private 채널에 봇 초대:
+```
+/invite @회의록봇
+```
+
+> **중요:** 각 팀장이 자기 Token을 사용하므로 **회의록 작성자는 실제 사용자 이름**으로 표시됩니다!
+
+---
+
+## 🛠️ 문제 해결
+
+### "python3 command not found"
+```bash
+python --version  # Python 3.x 확인
+```
+
+### "streamlit not found"
+```bash
+pip3 install streamlit
+```
+
+### 포트 충돌 (8501 이미 사용 중)
+```bash
+lsof -ti:8501 | xargs kill -9
+```
+
+---
+
+## 🌐 다른 사람들과 공유하기
+
+**배포 가이드:** [DEPLOY.md](DEPLOY.md) 참고
+
+### 간단 요약:
+1. GitHub Private 저장소에 코드 업로드
+2. Streamlit Cloud에 배포
+3. API 키는 Secrets로 안전하게 관리
+
+**결과:** `https://your-app.streamlit.app` 같은 URL로 접근 가능!
+
+---
+
+## 📝 다음 단계 (6~10번 스펙)
+
+- [ ] Jira/Wiki 추천 항목
+- [ ] 일일 액션아이템 DM
+- [ ] Slack 대화 요약
+- [ ] 리마인더 기능
+
+---
+
+Made with ❤️ by AI
