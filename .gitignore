@@ -17,6 +17,12 @@ ENV/
 # Streamlit
 .streamlit/secrets.toml
 
+# DM 설정 (개인정보 포함)
+daily_dm_config.py
+
+# 사용자 설정 (로컬 JSON 파일)
+.meeting_automation_config.json
+
 # IDE
 .vscode/
 .idea/

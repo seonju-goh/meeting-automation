@@ -116,10 +116,64 @@ lsof -ti:8501 | xargs kill -9
 
 ---
 
-## 📝 다음 단계 (6~10번 스펙)
+## 🔔 일일 액션아이템 DM (신규!)
+
+매일 오전 9시, 미완료 액션아이템을 Slack DM으로 자동 전송합니다.
+
+### 설정 방법
+
+**1단계: Slack ID 확인**
+
+앱 사이드바에서 본인의 Slack ID를 확인하고 복사
+
+**2단계: 관리자에게 전달**
+
+복사한 Slack ID와 Confluence 설정을 관리자에게 전달:
+- Slack ID (예: U123ABC456)
+- Confluence 이메일
+- Confluence API Token
+- 검색할 공간 키
+- (선택) 상위 페이지 ID
+
+**3단계: 관리자 설정**
+
+관리자가 `daily_dm_config.py` 파일에 사용자 정보 추가:
+
+```python
+USERS = [
+    {
+        "name": "고선주",
+        "slack_id": "U123ABC456",
+        "confluence_username": "seonju@woowahan.com",
+        "confluence_token": "ATATT...",
+        "confluence_space": "~seonju",
+        "confluence_parent_id": "123456789",  # 선택
+    },
+]
+```
+
+**4단계: 스케줄러 실행**
+
+```bash
+./start_scheduler.sh
+```
+
+> **💡 Tip:** 스케줄러는 서버나 항상 켜진 컴퓨터에서 실행하세요!
+
+### DM 내용
+
+- 🚨 **기한 지남**: 오늘 날짜 기준 지난 항목
+- ⏰ **오늘 마감**: D-Day 항목
+- 📅 **3일 후 마감**: D-3 항목
+
+각 항목에는 원본 회의록 링크 포함!
+
+---
+
+## 📝 다음 단계 (8~10번 스펙)
 
 - [ ] Jira/Wiki 추천 항목
-- [ ] 일일 액션아이템 DM
+- [x] **일일 액션아이템 DM** ✅
 - [ ] Slack 대화 요약
 - [ ] 리마인더 기능
 

@@ -20,3 +20,4 @@ python3 -m streamlit run app.py
 echo ""
 echo "👋 회의록 자동화 시스템이 종료되었습니다."
 
+
