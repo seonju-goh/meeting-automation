@@ -45,15 +45,29 @@ def save_user_config(config_data: dict):
 
 
 def load_user_config() -> dict:
-    """로컬 JSON 파일에서 사용자 설정 로드"""
+    """로컬 JSON 파일 또는 Streamlit Secrets에서 사용자 설정 로드"""
+    # 1. 먼저 로컬 파일 시도 (로컬 실행 시)
     try:
         if CONFIG_FILE.exists():
             with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
                 return json.load(f)
-    except Exception as e:
-        st.warning(f"설정 파일 로드 중 오류: {e}")
+    except Exception:
+        pass
     
-    # 기본값 반환
+    # 2. Streamlit Secrets에서 로드 시도 (클라우드 실행 시)
+    try:
+        if hasattr(st, 'secrets'):
+            return {
+                'confluence_username': st.secrets.get('CONFLUENCE_USERNAME', ''),
+                'confluence_token': st.secrets.get('CONFLUENCE_TOKEN', ''),
+                'confluence_space': st.secrets.get('CONFLUENCE_SPACE', ''),
+                'confluence_parent_id': st.secrets.get('CONFLUENCE_PARENT_ID', ''),
+                'slack_channel': st.secrets.get('SLACK_CHANNEL', '')
+            }
+    except Exception:
+        pass
+    
+    # 3. 기본값 반환
     return {
         'confluence_username': '',
         'confluence_token': '',
