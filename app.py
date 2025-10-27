@@ -45,8 +45,7 @@ def save_user_config(config_data: dict):
 
 
 def load_user_config() -> dict:
-    """로컬 JSON 파일 또는 Streamlit Secrets에서 사용자 설정 로드"""
-    # 1. 먼저 로컬 파일 시도 (로컬 실행 시)
+    """로컬 JSON 파일에서 사용자 설정 로드 (로컬 실행 시에만 작동)"""
     try:
         if CONFIG_FILE.exists():
             with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
@@ -54,20 +53,7 @@ def load_user_config() -> dict:
     except Exception:
         pass
     
-    # 2. Streamlit Secrets에서 로드 시도 (클라우드 실행 시)
-    try:
-        if hasattr(st, 'secrets'):
-            return {
-                'confluence_username': st.secrets.get('CONFLUENCE_USERNAME', ''),
-                'confluence_token': st.secrets.get('CONFLUENCE_TOKEN', ''),
-                'confluence_space': st.secrets.get('CONFLUENCE_SPACE', ''),
-                'confluence_parent_id': st.secrets.get('CONFLUENCE_PARENT_ID', ''),
-                'slack_channel': st.secrets.get('SLACK_CHANNEL', '')
-            }
-    except Exception:
-        pass
-    
-    # 3. 기본값 반환
+    # 기본값 반환 (클라우드에서는 항상 빈 값으로 시작)
     return {
         'confluence_username': '',
         'confluence_token': '',
@@ -707,6 +693,28 @@ if st.session_state.get('form_submitted', False):
 # 사이드바 - 개인 설정
 with st.sidebar:
     st.header("⚙️ 개인 설정")
+    
+    # LocalStorage에서 설정 불러오기 버튼
+    if st.button("📥 이전 설정 불러오기", use_container_width=True, help="브라우저에 저장된 설정을 불러옵니다"):
+        st.components.v1.html("""
+        <script>
+            // LocalStorage에서 읽기
+            const username = localStorage.getItem('confluence_username') || '';
+            const token = localStorage.getItem('confluence_token') || '';
+            const space = localStorage.getItem('confluence_space') || '';
+            const parentId = localStorage.getItem('confluence_parent_id') || '';
+            const channel = localStorage.getItem('slack_channel') || '';
+            
+            // 부모 창으로 메시지 전달
+            window.parent.postMessage({
+                type: 'FROM_LOCALSTORAGE',
+                username, token, space, parentId, channel
+            }, '*');
+            
+            // 페이지 새로고침하여 값 반영
+            setTimeout(() => window.parent.location.reload(), 500);
+        </script>
+        """, height=0)
     
     st.markdown("### 📍 Confluence")
     
