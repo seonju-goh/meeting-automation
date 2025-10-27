@@ -252,8 +252,8 @@ def validate_confluence_settings(username: str, token: str, space_key: str) -> d
     
     try:
         auth_string = f"{username}:{token}"
-        auth_bytes = auth_string.encode('ascii')
-        auth_b64 = base64.b64encode(auth_bytes).decode('ascii')
+        auth_bytes = auth_string.encode('utf-8')
+        auth_b64 = base64.b64encode(auth_bytes).decode('utf-8')
         
         headers = {
             "Authorization": f"Basic {auth_b64}",
