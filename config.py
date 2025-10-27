@@ -1,17 +1,23 @@
 import os
 from dotenv import load_dotenv
 
+# 로컬 실행 시 .env 로드
 load_dotenv()
 
-# OpenAI
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+# Streamlit Secrets 사용 (클라우드) 또는 환경변수 (로컬)
+try:
+    import streamlit as st
+    # Streamlit Cloud에서 실행 중
+    OPENAI_API_KEY = st.secrets.get('OPENAI_API_KEY', os.getenv('OPENAI_API_KEY'))
+    CONFLUENCE_URL = st.secrets.get('CONFLUENCE_URL', os.getenv('CONFLUENCE_URL', 'https://woowahanbros.atlassian.net'))
+    SLACK_BOT_TOKEN = st.secrets.get('SLACK_BOT_TOKEN', os.getenv('SLACK_BOT_TOKEN'))
+except:
+    # 로컬 실행 또는 Streamlit import 불가
+    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+    CONFLUENCE_URL = os.getenv('CONFLUENCE_URL', 'https://woowahanbros.atlassian.net')
+    SLACK_BOT_TOKEN = os.getenv('SLACK_BOT_TOKEN')
 
-# Confluence
-CONFLUENCE_URL = os.getenv('CONFLUENCE_URL', 'https://woowahanbros.atlassian.net')
-# Note: Username, Token, Space Key는 이제 사용자가 UI에서 입력
-
-# Slack
-SLACK_BOT_TOKEN = os.getenv('SLACK_BOT_TOKEN')  # 공용 Bot Token (Secrets에만)
+# Note: Confluence Username, Token, Space Key는 사용자가 UI 사이드바에서 직접 입력
 
 # 시스템 프롬프트
 SYSTEM_PROMPT_TITLE = """당신은 회의 제목을 생성하는 전문가입니다.
