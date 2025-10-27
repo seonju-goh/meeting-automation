@@ -213,8 +213,23 @@ def extract_action_items_from_notes(meeting_notes: str) -> list:
         return []
 
 
+def get_external_ip():
+    """외부 IP 주소 확인"""
+    try:
+        response = requests.get('https://httpbin.org/ip', timeout=5)
+        if response.status_code == 200:
+            return response.json().get('origin', 'Unknown')
+    except:
+        pass
+    return 'Unknown'
+
 def validate_confluence_settings(username: str, token: str, space_key: str) -> dict:
     """Confluence 설정 유효성 검증"""
+    
+    # 🔍 Streamlit Cloud의 현재 IP 확인
+    current_ip = get_external_ip()
+    st.write(f"### 🌐 현재 Streamlit Cloud IP: `{current_ip}`")
+    
     try:
         auth_string = f"{username}:{token}"
         auth_bytes = auth_string.encode('ascii')
