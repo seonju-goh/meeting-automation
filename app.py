@@ -694,28 +694,6 @@ if st.session_state.get('form_submitted', False):
 with st.sidebar:
     st.header("⚙️ 개인 설정")
     
-    # LocalStorage에서 설정 불러오기 버튼
-    if st.button("📥 이전 설정 불러오기", use_container_width=True, help="브라우저에 저장된 설정을 불러옵니다"):
-        st.components.v1.html("""
-        <script>
-            // LocalStorage에서 읽기
-            const username = localStorage.getItem('confluence_username') || '';
-            const token = localStorage.getItem('confluence_token') || '';
-            const space = localStorage.getItem('confluence_space') || '';
-            const parentId = localStorage.getItem('confluence_parent_id') || '';
-            const channel = localStorage.getItem('slack_channel') || '';
-            
-            // 부모 창으로 메시지 전달
-            window.parent.postMessage({
-                type: 'FROM_LOCALSTORAGE',
-                username, token, space, parentId, channel
-            }, '*');
-            
-            // 페이지 새로고침하여 값 반영
-            setTimeout(() => window.parent.location.reload(), 500);
-        </script>
-        """, height=0)
-    
     st.markdown("### 📍 Confluence")
     
     with st.expander("❓ Token 발급 방법", expanded=False):
@@ -839,7 +817,7 @@ with st.sidebar:
     
     st.markdown("---")
     
-    if st.button("💾 설정 저장", use_container_width=True, type="primary"):
+    if st.button("✅ 설정 검증", use_container_width=True, type="primary"):
         # 입력 검증
         errors = []
         
@@ -902,11 +880,12 @@ with st.sidebar:
                     }
                     
                     if save_user_config(config_data):
-                        st.success("🎉 설정이 성공적으로 저장되었습니다!")
-                        st.info(f"💡 설정이 로컬 파일에 저장되었습니다: `{CONFIG_FILE}`\n브라우저를 새로고침해도 설정이 유지됩니다!")
+                        st.success("🎉 설정 검증이 완료되었습니다!")
+                        st.info(f"💡 **로컬 실행**: 설정이 파일에 저장됨 (`{CONFIG_FILE}`)\n**클라우드**: 이 세션 동안만 유지됨 (새로고침 시 다시 입력 필요)")
                         st.balloons()
                     else:
-                        st.warning("⚠️ 설정이 세션에는 저장되었지만, 파일 저장에 실패했습니다.")
+                        st.success("🎉 설정 검증이 완료되었습니다!")
+                        st.info("💡 설정이 이 세션 동안 유지됩니다. 새로고침하면 다시 입력해주세요.")
                 else:
                     st.warning("⚠️ 위 오류를 수정 후 다시 시도해주세요")
     
