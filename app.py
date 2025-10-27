@@ -251,9 +251,20 @@ def validate_confluence_settings(username: str, token: str, space_key: str) -> d
     test_external_api()
     
     try:
+        # 🔍 토큰 검증
+        st.write(f"### 🔍 토큰 검증")
+        st.write(f"- Username: `{username}`")
+        st.write(f"- Username 길이: {len(username)}")
+        st.write(f"- Token 앞 10자: `{token[:10] if token else '(없음)'}`")
+        st.write(f"- Token 길이: {len(token)}")
+        st.write(f"- Token 끝 10자: `{token[-10:] if token else '(없음)'}`")
+        
         auth_string = f"{username}:{token}"
         auth_bytes = auth_string.encode('utf-8')
         auth_b64 = base64.b64encode(auth_bytes).decode('utf-8')
+        
+        st.write(f"- Auth String 길이: {len(auth_string)}")
+        st.write(f"- Base64 앞 20자: `{auth_b64[:20]}...`")
         
         headers = {
             "Authorization": f"Basic {auth_b64}",
@@ -262,7 +273,18 @@ def validate_confluence_settings(username: str, token: str, space_key: str) -> d
         
         # 공간 정보 조회로 접근 가능 여부 확인
         url = f"{config.CONFLUENCE_URL}/wiki/rest/api/space/{space_key}"
+        
+        st.write(f"### 🔍 API 요청 정보")
+        st.write(f"- 요청 URL: `{url}`")
+        st.write(f"- Authorization 헤더 앞 30자: `{headers['Authorization'][:30]}...`")
+        
         response = requests.get(url, headers=headers, timeout=10)
+        
+        st.write(f"### 🔍 API 응답 정보")
+        st.write(f"- 응답 상태 코드: `{response.status_code}`")
+        st.write(f"- 응답 헤더: `{dict(response.headers)}`")
+        if response.status_code != 200:
+            st.write(f"- 응답 내용: `{response.text[:500]}...`")
         
         if response.status_code == 200:
             space_data = response.json()
