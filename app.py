@@ -73,7 +73,7 @@ def structure_meeting_notes(meeting_title: str, attendees: str, meeting_date: st
     return response.choices[0].message.content
 
 
-def upload_to_confluence(title: str, content: str, meeting_date: str, username: str, token: str, space_key: str) -> dict:
+def upload_to_confluence(title: str, content: str, meeting_date: str, username: str, token: str, space_key: str, parent_id: str = None) -> dict:
     """Confluence에 페이지 생성"""
     auth_string = f"{username}:{token}"
     auth_bytes = auth_string.encode('ascii')
@@ -104,6 +104,10 @@ def upload_to_confluence(title: str, content: str, meeting_date: str, username: 
             }
         }
     }
+    
+    # 상위 페이지 ID가 있으면 추가
+    if parent_id and parent_id.strip():
+        payload["ancestors"] = [{"id": parent_id.strip()}]
     
     response = requests.post(url, json=payload, headers=headers)
     
@@ -336,6 +340,8 @@ if 'user_confluence_token' not in st.session_state:
     st.session_state.user_confluence_token = ''
 if 'user_confluence_space' not in st.session_state:
     st.session_state.user_confluence_space = ''
+if 'user_confluence_parent_id' not in st.session_state:
+    st.session_state.user_confluence_parent_id = ''
 if 'user_slack_channel' not in st.session_state:
     st.session_state.user_slack_channel = ''
 
@@ -563,7 +569,8 @@ if st.session_state.get('final_submit', False):
             meeting_date,
             st.session_state.user_confluence_username,
             st.session_state.user_confluence_token,
-            st.session_state.user_confluence_space
+            st.session_state.user_confluence_space,
+            st.session_state.user_confluence_parent_id
         )
         
         # 3. Slack 요약
@@ -665,6 +672,30 @@ with st.sidebar:
         help="회의록을 저장할 공간 (매번 변경 가능)"
     )
     
+    with st.expander("❓ 상위 페이지 ID 확인 방법", expanded=False):
+        st.markdown("""
+**회의록을 특정 페이지 하위에 생성하려면:**
+
+1. Confluence에서 상위 페이지 열기 (예: "2025년 회의록")
+2. 페이지 우측 상단 **⋯ (더보기)** 클릭
+3. **"페이지 정보"** 또는 **"Page Information"** 클릭
+4. URL에서 숫자 복사:
+   ```
+   pageId=123456789
+          ^^^^^^^^^
+   ```
+5. 아래 입력란에 붙여넣기
+
+**비워두면?** 공간 루트에 바로 생성됩니다.
+        """)
+    
+    user_confluence_parent_id = st.text_input(
+        "상위 페이지 ID (선택사항)",
+        value=st.session_state.user_confluence_parent_id,
+        placeholder="예: 123456789 (비워두면 루트에 생성)",
+        help="특정 페이지 하위에 회의록 생성"
+    )
+    
     st.markdown("---")
     st.markdown("### 📍 Slack")
     
@@ -740,6 +771,7 @@ with st.sidebar:
                     st.session_state.user_confluence_username = user_confluence_username
                     st.session_state.user_confluence_token = user_confluence_token
                     st.session_state.user_confluence_space = user_confluence_space
+                    st.session_state.user_confluence_parent_id = user_confluence_parent_id
                     st.session_state.user_slack_channel = user_slack_channel
                     
                     st.success("🎉 설정이 성공적으로 저장되었습니다!")
