@@ -252,6 +252,17 @@ def extract_action_items_from_notes(meeting_notes: str) -> list:
 
 def validate_confluence_settings(username: str, token: str, space_key: str) -> dict:
     """Confluence 설정 유효성 검증"""
+    
+    # 🔍 디버깅: 전달된 값 출력
+    st.write("### 🔍 디버깅: 검증 함수에 전달된 값")
+    st.write(f"- Username: `{username}`")
+    st.write(f"- Username 길이: {len(username)} 글자")
+    st.write(f"- Token 앞 10자: `{token[:10] if token else '(없음)'}...`")
+    st.write(f"- Token 길이: {len(token)} 글자")
+    st.write(f"- Space Key: `{space_key}`")
+    st.write(f"- Space Key 길이: {len(space_key)} 글자")
+    st.write(f"- Confluence URL: `{config.CONFLUENCE_URL}`")
+    
     try:
         auth_string = f"{username}:{token}"
         auth_bytes = auth_string.encode('ascii')
