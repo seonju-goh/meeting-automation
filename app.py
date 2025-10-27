@@ -223,12 +223,32 @@ def get_external_ip():
         pass
     return 'Unknown'
 
+def test_external_api():
+    """외부 API 접근 테스트"""
+    try:
+        # GitHub API 테스트 (공개 API)
+        response = requests.get('https://api.github.com/user', timeout=5)
+        st.write(f"### 🔍 GitHub API 테스트: {response.status_code}")
+        
+        # Google API 테스트
+        response = requests.get('https://www.google.com', timeout=5)
+        st.write(f"### 🔍 Google 접근 테스트: {response.status_code}")
+        
+        return True
+    except Exception as e:
+        st.write(f"### ❌ 외부 API 테스트 실패: {e}")
+        return False
+
 def validate_confluence_settings(username: str, token: str, space_key: str) -> dict:
     """Confluence 설정 유효성 검증"""
     
     # 🔍 Streamlit Cloud의 현재 IP 확인
     current_ip = get_external_ip()
     st.write(f"### 🌐 현재 Streamlit Cloud IP: `{current_ip}`")
+    
+    # 🔍 외부 API 접근 테스트
+    st.write("### 🔍 외부 API 접근 테스트")
+    test_external_api()
     
     try:
         auth_string = f"{username}:{token}"
