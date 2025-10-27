@@ -594,6 +594,14 @@ if st.session_state.get('form_submitted', False):
             # 2. Confluence 업로드
             status_text.text("📤 Confluence 업로드 중...")
             progress_bar.progress(60)
+            
+            # 🔍 디버깅: 전달되는 값 확인
+            st.write("### 🔍 디버깅: Confluence 설정 확인")
+            st.write(f"- Username: {st.session_state.user_confluence_username}")
+            st.write(f"- Token: {st.session_state.user_confluence_token[:10]}... (앞 10자)")
+            st.write(f"- Space: {st.session_state.user_confluence_space}")
+            st.write(f"- Parent ID: {st.session_state.user_confluence_parent_id or '(없음)'}")
+            
             confluence_result = upload_to_confluence(
                 meeting_title, 
                 structured_content, 
