@@ -275,7 +275,19 @@ def validate_confluence_settings(username: str, token: str, space_key: str) -> d
         
         # 공간 정보 조회로 접근 가능 여부 확인
         url = f"{config.CONFLUENCE_URL}/wiki/rest/api/space/{space_key}"
+        
+        # 🔍 디버깅: 실제 요청 정보 출력
+        st.write("### 🔍 디버깅: 실제 API 요청")
+        st.write(f"- 요청 URL: `{url}`")
+        st.write(f"- Authorization 헤더 앞 20자: `{headers['Authorization'][:20]}...`")
+        
         response = requests.get(url, headers=headers, timeout=10)
+        
+        # 🔍 디버깅: 응답 정보 출력
+        st.write(f"- 응답 상태 코드: `{response.status_code}`")
+        st.write(f"- 응답 헤더: `{dict(response.headers)}`")
+        if response.status_code != 200:
+            st.write(f"- 응답 내용: `{response.text[:500]}...`")
         
         if response.status_code == 200:
             space_data = response.json()
