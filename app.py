@@ -66,24 +66,41 @@ def load_user_config() -> dict:
 def generate_title(meeting_notes: str) -> str:
     """회의 내용에서 제목 자동 생성 (날짜 제외)"""
     import re
+    from datetime import datetime
     
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": config.SYSTEM_PROMPT_TITLE},
-            {"role": "user", "content": f"다음 회의 내용의 제목을 생성해주세요:\n\n{meeting_notes[:500]}"}
-        ],
-        temperature=0.3,
-        max_tokens=100
-    )
+    # 회의 내용이 충분하지 않으면 날짜 + '회의록' 반환
+    if len(meeting_notes.strip()) < 50:  # 50글자 미만이면 부족한 것으로 판단
+        today = datetime.now().strftime("%Y년 %m월 %d일")
+        return f"{today} 회의록"
     
-    title = response.choices[0].message.content.strip()
-    
-    # 혹시 날짜가 포함되어 있으면 제거
-    title = re.sub(r'^\d{4}[-년./]\d{1,2}[-월./]\d{1,2}[일]?\s*', '', title)
-    title = re.sub(r'^\d{1,2}[-월/]\d{1,2}[일]?\s*', '', title)
-    
-    return title.strip()
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": config.SYSTEM_PROMPT_TITLE},
+                {"role": "user", "content": f"다음 회의 내용의 제목을 생성해주세요:\n\n{meeting_notes[:500]}"}
+            ],
+            temperature=0.3,
+            max_tokens=100
+        )
+        
+        title = response.choices[0].message.content.strip()
+        
+        # 혹시 날짜가 포함되어 있으면 제거
+        title = re.sub(r'^\d{4}[-년./]\d{1,2}[-월./]\d{1,2}[일]?\s*', '', title)
+        title = re.sub(r'^\d{1,2}[-월/]\d{1,2}[일]?\s*', '', title)
+        
+        # 제목이 너무 짧거나 이상하면 날짜 + '회의록' 반환
+        if len(title.strip()) < 5 or title.strip() in ['제목', '회의록', '회의', '']:
+            today = datetime.now().strftime("%Y년 %m월 %d일")
+            return f"{today} 회의록"
+        
+        return title.strip()
+        
+    except Exception as e:
+        # AI 생성 실패 시 날짜 + '회의록' 반환
+        today = datetime.now().strftime("%Y년 %m월 %d일")
+        return f"{today} 회의록"
 
 
 def structure_meeting_notes(meeting_title: str, attendees: str, meeting_date: str, meeting_notes: str, action_items_text: str = "") -> str:
