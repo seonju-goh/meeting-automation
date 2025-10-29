@@ -737,22 +737,26 @@ if st.session_state.get('form_submitted', False):
                     # 회의록 보기 (링크 없이 텍스트만)
                     st.markdown("### 📖 회의록 보기")
                     
-                    # 작동하는 복사 버튼
-                    if st.button("📋 복사", key="copy_confluence_url"):
-                        # JavaScript를 사용한 실제 클립보드 복사
-                        st.markdown(f"""
-                        <script>
-                            navigator.clipboard.writeText('{confluence_result['url']}').then(function() {{
+                    # 작동하는 복사 버튼 (페이지 새로고침 없이)
+                    st.markdown(f"""
+                    <div style="margin-top: 10px;">
+                        <button onclick="copyToClipboard('{confluence_result['url']}')" 
+                                style="background-color: #f0f2f6; border: 1px solid #ccc; border-radius: 4px; padding: 8px 12px; cursor: pointer; font-size: 14px;">
+                            📋 복사
+                        </button>
+                    </div>
+                    
+                    <script>
+                        function copyToClipboard(text) {{
+                            navigator.clipboard.writeText(text).then(function() {{
                                 alert('URL이 클립보드에 복사되었습니다!');
                             }}).catch(function(err) {{
                                 console.error('복사 실패:', err);
                                 alert('복사에 실패했습니다. URL을 수동으로 복사해주세요.');
                             }});
-                        </script>
-                        """, unsafe_allow_html=True)
-                        
-                        st.code(confluence_result['url'])
-                        st.success("✅ URL이 클립보드에 복사되었습니다!")
+                        }}
+                    </script>
+                    """, unsafe_allow_html=True)
                 else:
                     st.error("❌ 업로드 실패")
                     with st.expander("에러 상세"):
