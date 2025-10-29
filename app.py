@@ -739,8 +739,20 @@ if st.session_state.get('form_submitted', False):
                     
                     # 작동하는 복사 버튼
                     if st.button("📋 복사", key="copy_confluence_url"):
+                        # JavaScript를 사용한 실제 클립보드 복사
+                        st.markdown(f"""
+                        <script>
+                            navigator.clipboard.writeText('{confluence_result['url']}').then(function() {{
+                                alert('URL이 클립보드에 복사되었습니다!');
+                            }}).catch(function(err) {{
+                                console.error('복사 실패:', err);
+                                alert('복사에 실패했습니다. URL을 수동으로 복사해주세요.');
+                            }});
+                        </script>
+                        """, unsafe_allow_html=True)
+                        
                         st.code(confluence_result['url'])
-                        st.success("✅ URL이 표시되었습니다. 위의 코드를 선택해서 복사하세요!")
+                        st.success("✅ URL이 클립보드에 복사되었습니다!")
                 else:
                     st.error("❌ 업로드 실패")
                     with st.expander("에러 상세"):
