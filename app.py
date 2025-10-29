@@ -421,7 +421,6 @@ attendees_input = st.text_input(
 # 입력 폼 (회의 내용만)
 with st.form("meeting_form"):
     
-    st.markdown("---")
     st.subheader("2️⃣ 회의 내용")
     
     meeting_notes = st.text_area(
