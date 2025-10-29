@@ -149,6 +149,53 @@ def structure_meeting_notes(meeting_title: str, attendees: str, meeting_date: st
     return response.choices[0].message.content
 
 
+def _get_unique_title(base_title: str, username: str, token: str, space_key: str) -> str:
+    """중복되지 않는 고유한 제목 생성"""
+    import requests
+    import base64
+    
+    auth_string = f"{username}:{token}"
+    auth_bytes = auth_string.encode('ascii')
+    auth_b64 = base64.b64encode(auth_bytes).decode('ascii')
+    
+    headers = {
+        "Authorization": f"Basic {auth_b64}",
+        "Content-Type": "application/json"
+    }
+    
+    # 현재 제목으로 검색
+    search_url = f"{config.CONFLUENCE_URL}/wiki/rest/api/content"
+    params = {
+        "title": base_title,
+        "spaceKey": space_key,
+        "expand": "title"
+    }
+    
+    try:
+        response = requests.get(search_url, headers=headers, params=params)
+        if response.status_code == 200:
+            results = response.json()
+            if results.get('results'):
+                # 중복이 있으면 숫자 추가
+                counter = 2
+                while True:
+                    new_title = f"{base_title} ({counter})"
+                    params['title'] = new_title
+                    response = requests.get(search_url, headers=headers, params=params)
+                    if response.status_code == 200:
+                        results = response.json()
+                        if not results.get('results'):
+                            return new_title
+                    counter += 1
+                    if counter > 100:  # 무한 루프 방지
+                        break
+        
+        return base_title
+        
+    except Exception:
+        return base_title
+
+
 def upload_to_confluence(title: str, content: str, meeting_date: str, username: str, token: str, space_key: str, parent_id: str = None) -> dict:
     """Confluence에 페이지 생성"""
     auth_string = f"{username}:{token}"
@@ -157,6 +204,9 @@ def upload_to_confluence(title: str, content: str, meeting_date: str, username: 
     
     # 제목 형식: YYYY-MM-DD 회의명 – 회의록
     page_title = f"{meeting_date} {title} – 회의록"
+    
+    # 중복 제목 처리
+    page_title = _get_unique_title(page_title, username, token, space_key)
     
     # Confluence Storage Format으로 변환
     html_content = markdown_to_confluence_storage(content)
