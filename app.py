@@ -63,15 +63,18 @@ def load_user_config() -> dict:
     }
 
 
-def generate_title(meeting_notes: str) -> str:
+def generate_title(meeting_notes: str, meeting_date: str = "") -> str:
     """회의 내용에서 제목 자동 생성 (날짜 제외)"""
     import re
     from datetime import datetime
     
     # 회의 내용이 충분하지 않으면 날짜 + '회의록' 반환
     if len(meeting_notes.strip()) < 50:  # 50글자 미만이면 부족한 것으로 판단
-        today = datetime.now().strftime("%Y년 %m월 %d일")
-        return f"{today} 회의록"
+        if meeting_date:
+            return f"{meeting_date} 회의록"
+        else:
+            today = datetime.now().strftime("%Y-%m-%d")
+            return f"{today} 회의록"
     
     try:
         response = client.chat.completions.create(
@@ -92,15 +95,21 @@ def generate_title(meeting_notes: str) -> str:
         
         # 제목이 너무 짧거나 이상하면 날짜 + '회의록' 반환
         if len(title.strip()) < 5 or title.strip() in ['제목', '회의록', '회의', '']:
-            today = datetime.now().strftime("%Y년 %m월 %d일")
-            return f"{today} 회의록"
+            if meeting_date:
+                return f"{meeting_date} 회의록"
+            else:
+                today = datetime.now().strftime("%Y-%m-%d")
+                return f"{today} 회의록"
         
         return title.strip()
         
     except Exception as e:
         # AI 생성 실패 시 날짜 + '회의록' 반환
-        today = datetime.now().strftime("%Y년 %m월 %d일")
-        return f"{today} 회의록"
+        if meeting_date:
+            return f"{meeting_date} 회의록"
+        else:
+            today = datetime.now().strftime("%Y-%m-%d")
+            return f"{today} 회의록"
 
 
 def structure_meeting_notes(meeting_title: str, attendees: str, meeting_date: str, meeting_notes: str, action_items_text: str = "") -> str:
@@ -569,7 +578,7 @@ if st.session_state.get('form_submitted', False):
             if auto_title:
                 status_text.text("🤖 회의 제목 생성 중...")
                 progress_bar.progress(10)
-                meeting_title = generate_title(meeting_notes)
+                meeting_title = generate_title(meeting_notes, meeting_date)
                 st.info(f"✨ 생성된 제목: **{meeting_title}**")
                 progress_bar.progress(20)
             
