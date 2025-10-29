@@ -76,6 +76,19 @@ def generate_title(meeting_notes: str, meeting_date: str = "") -> str:
             today = datetime.now().strftime("%Y-%m-%d")
             return f"{today} 회의록"
     
+    # 의미있는 단어 개수 체크 (중복 단어나 의미없는 단어 제외)
+    words = meeting_notes.split()
+    meaningful_words = [word for word in words if len(word) > 2 and word.lower() not in ['test', '테스트', '안녕', 'hello', 'hi', '안녕하세요']]
+    unique_meaningful_words = list(set(meaningful_words))
+    
+    # 의미있는 단어가 3개 미만이면 부족한 것으로 판단
+    if len(unique_meaningful_words) < 3:
+        if meeting_date:
+            return f"{meeting_date} 회의록"
+        else:
+            today = datetime.now().strftime("%Y-%m-%d")
+            return f"{today} 회의록"
+    
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
