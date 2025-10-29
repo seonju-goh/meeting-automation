@@ -684,18 +684,13 @@ if st.session_state.get('form_submitted', False):
                 if confluence_result.get('success'):
                     st.success("✅ 업로드 완료")
                     
-                    # 회의록 보기 링크와 복사 기능
-                    st.markdown(f"### [📖 회의록 보기]({confluence_result['url']})")
+                    # 회의록 보기 링크 (클립 버튼 없이)
+                    st.markdown(f"### 📖 회의록 보기: [{confluence_result['url']}]({confluence_result['url']})")
                     
-                    # 클립보드 복사 기능
-                    st.markdown(f"""
-                    <div style="margin-top: 10px;">
-                        <button onclick="navigator.clipboard.writeText('{confluence_result['url']}').then(() => alert('URL이 클립보드에 복사되었습니다!'))" 
-                                style="background-color: #f0f2f6; border: 1px solid #ccc; border-radius: 4px; padding: 8px 12px; cursor: pointer; font-size: 14px;">
-                            📋 URL 복사
-                        </button>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    # 작동하는 복사 버튼
+                    if st.button("📋 URL 복사", key="copy_confluence_url"):
+                        st.code(confluence_result['url'])
+                        st.success("✅ URL이 표시되었습니다. 위의 코드를 복사하세요!")
                 else:
                     st.error("❌ 업로드 실패")
                     with st.expander("에러 상세"):
