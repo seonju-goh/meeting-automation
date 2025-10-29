@@ -737,14 +737,10 @@ if st.session_state.get('form_submitted', False):
                     # 회의록 보기 (링크 없이 텍스트만)
                     st.markdown("### 📖 회의록 보기")
                     
-                    # 작동하는 복사 버튼과 URL 표시
-                    col_copy, col_url = st.columns([1, 3])
-                    with col_copy:
-                        if st.button("📋 복사", key="copy_confluence_url"):
-                            st.code(confluence_result['url'])
-                            st.success("✅ URL이 표시되었습니다. 위의 코드를 선택해서 복사하세요!")
-                    with col_url:
-                        st.text(confluence_result['url'])
+                    # 작동하는 복사 버튼
+                    if st.button("📋 복사", key="copy_confluence_url"):
+                        st.code(confluence_result['url'])
+                        st.success("✅ URL이 표시되었습니다. 위의 코드를 선택해서 복사하세요!")
                 else:
                     st.error("❌ 업로드 실패")
                     with st.expander("에러 상세"):
