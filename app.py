@@ -10,6 +10,7 @@ import requests
 from openai import OpenAI
 import config
 from utils import markdown_to_confluence_storage, extract_action_items_count
+import json
 
 # 페이지 설정
 st.set_page_config(
@@ -24,6 +25,42 @@ def get_openai_client():
     return OpenAI(api_key=config.OPENAI_API_KEY)
 
 client = get_openai_client()
+
+
+# 설정 저장/로드 함수 (로컬 JSON 파일 사용)
+import os
+from pathlib import Path
+
+CONFIG_FILE = Path.home() / '.meeting_automation_config.json'
+
+def save_user_config(config_data: dict):
+    """사용자 설정을 로컬 JSON 파일에 저장"""
+    try:
+        with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+            json.dump(config_data, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        st.error(f"설정 저장 실패: {e}")
+        return False
+
+
+def load_user_config() -> dict:
+    """로컬 JSON 파일에서 사용자 설정 로드"""
+    try:
+        if CONFIG_FILE.exists():
+            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        st.warning(f"설정 파일 로드 중 오류: {e}")
+    
+    # 기본값 반환
+    return {
+        'confluence_username': '',
+        'confluence_token': '',
+        'confluence_space': '',
+        'confluence_parent_id': '',
+        'slack_channel': ''
+    }
 
 
 def generate_title(meeting_notes: str) -> str:
@@ -213,58 +250,12 @@ def extract_action_items_from_notes(meeting_notes: str) -> list:
         return []
 
 
-def get_external_ip():
-    """외부 IP 주소 확인"""
-    try:
-        response = requests.get('https://httpbin.org/ip', timeout=5)
-        if response.status_code == 200:
-            return response.json().get('origin', 'Unknown')
-    except:
-        pass
-    return 'Unknown'
-
-def test_external_api():
-    """외부 API 접근 테스트"""
-    try:
-        # GitHub API 테스트 (공개 API)
-        response = requests.get('https://api.github.com/user', timeout=5)
-        st.write(f"### 🔍 GitHub API 테스트: {response.status_code}")
-        
-        # Google API 테스트
-        response = requests.get('https://www.google.com', timeout=5)
-        st.write(f"### 🔍 Google 접근 테스트: {response.status_code}")
-        
-        return True
-    except Exception as e:
-        st.write(f"### ❌ 외부 API 테스트 실패: {e}")
-        return False
-
 def validate_confluence_settings(username: str, token: str, space_key: str) -> dict:
     """Confluence 설정 유효성 검증"""
-    
-    # 🔍 Streamlit Cloud의 현재 IP 확인
-    current_ip = get_external_ip()
-    st.write(f"### 🌐 현재 Streamlit Cloud IP: `{current_ip}`")
-    
-    # 🔍 외부 API 접근 테스트
-    st.write("### 🔍 외부 API 접근 테스트")
-    test_external_api()
-    
     try:
-        # 🔍 토큰 검증
-        st.write(f"### 🔍 토큰 검증")
-        st.write(f"- Username: `{username}`")
-        st.write(f"- Username 길이: {len(username)}")
-        st.write(f"- Token 앞 10자: `{token[:10] if token else '(없음)'}`")
-        st.write(f"- Token 길이: {len(token)}")
-        st.write(f"- Token 끝 10자: `{token[-10:] if token else '(없음)'}`")
-        
         auth_string = f"{username}:{token}"
-        auth_bytes = auth_string.encode('utf-8')
-        auth_b64 = base64.b64encode(auth_bytes).decode('utf-8')
-        
-        st.write(f"- Auth String 길이: {len(auth_string)}")
-        st.write(f"- Base64 앞 20자: `{auth_b64[:20]}...`")
+        auth_bytes = auth_string.encode('ascii')
+        auth_b64 = base64.b64encode(auth_bytes).decode('ascii')
         
         headers = {
             "Authorization": f"Basic {auth_b64}",
@@ -273,18 +264,7 @@ def validate_confluence_settings(username: str, token: str, space_key: str) -> d
         
         # 공간 정보 조회로 접근 가능 여부 확인
         url = f"{config.CONFLUENCE_URL}/wiki/rest/api/space/{space_key}"
-        
-        st.write(f"### 🔍 API 요청 정보")
-        st.write(f"- 요청 URL: `{url}`")
-        st.write(f"- Authorization 헤더 앞 30자: `{headers['Authorization'][:30]}...`")
-        
         response = requests.get(url, headers=headers, timeout=10)
-        
-        st.write(f"### 🔍 API 응답 정보")
-        st.write(f"- 응답 상태 코드: `{response.status_code}`")
-        st.write(f"- 응답 헤더: `{dict(response.headers)}`")
-        if response.status_code != 200:
-            st.write(f"- 응답 내용: `{response.text[:500]}...`")
         
         if response.status_code == 200:
             space_data = response.json()
@@ -390,21 +370,19 @@ if 'action_items' not in st.session_state:
 if 'auto_extracted' not in st.session_state:
     st.session_state.auto_extracted = False
 
-# 사용자 설정 초기화
-if 'user_confluence_username' not in st.session_state:
-    st.session_state.user_confluence_username = ''
-if 'user_confluence_token' not in st.session_state:
-    st.session_state.user_confluence_token = ''
-if 'user_confluence_space' not in st.session_state:
-    st.session_state.user_confluence_space = ''
-if 'user_confluence_parent_id' not in st.session_state:
-    st.session_state.user_confluence_parent_id = ''
-if 'user_slack_channel' not in st.session_state:
-    st.session_state.user_slack_channel = ''
+# 사용자 설정 초기화 - 로컬 파일에서 자동 로드
+if 'config_loaded' not in st.session_state:
+    saved_config = load_user_config()
+    st.session_state.user_confluence_username = saved_config.get('confluence_username', '')
+    st.session_state.user_confluence_token = saved_config.get('confluence_token', '')
+    st.session_state.user_confluence_space = saved_config.get('confluence_space', '')
+    st.session_state.user_confluence_parent_id = saved_config.get('confluence_parent_id', '')
+    st.session_state.user_slack_channel = saved_config.get('slack_channel', '')
+    st.session_state.config_loaded = True
 
 # Streamlit UI
-st.title("📝 회의록 자동화")
-st.markdown("AI가 회의록을 자동으로 구조화하고 Confluence와 Slack에 공유합니다")
+st.title("📝 회의 후속조치 자동화 AI 비서")
+st.markdown("AI가 회의록을 작성/발행/공유하며, 이후 follow-up까지 책임집니다.")
 st.markdown("---")
 
 # 제목 입력 (폼 밖에서 즉시 반응)
@@ -509,7 +487,7 @@ if st.session_state.get('form_submitted', False):
         st.warning("액션아이템이 없습니다. 필요하면 추가 버튼을 눌러주세요.")
     else:
         for i, item in enumerate(st.session_state.action_items):
-            with st.expander(f"📋 액션아이템 {i+1}: {item.get('task', '새 항목')[:30]}...", expanded=True):
+            with st.expander(f"📋 액션아이템 {i+1}", expanded=True):
                 col1, col2, col3, col4 = st.columns([3, 1, 1, 0.5])
                 
                 with col1:
@@ -543,152 +521,166 @@ if st.session_state.get('form_submitted', False):
     
     st.markdown("---")
     
-    # 최종 생성 버튼
+    # 최종 생성 버튼과 처리
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("🚀 회의록 생성 및 전송", use_container_width=True, type="primary"):
-            st.session_state.final_submit = True
-            st.rerun()
-
-# 최종 회의록 생성
-if st.session_state.get('final_submit', False):
-    meeting_title = st.session_state.meeting_title
-    auto_title = st.session_state.auto_title
-    meeting_date = st.session_state.meeting_date
-    attendees = st.session_state.attendees
-    meeting_notes = st.session_state.meeting_notes
-    action_items = st.session_state.action_items
+        generate_button = st.button("🚀 회의록 wiki문서 생성 및 Slack전송", use_container_width=True, type="primary")
     
-    # 설정 검증
-    if not st.session_state.user_confluence_token or not st.session_state.user_confluence_space:
-        st.error("❌ Confluence 설정이 필요합니다! 사이드바에서 설정해주세요.")
-        st.session_state.final_submit = False
-        st.stop()
-    
-    if not st.session_state.user_slack_channel:
-        st.error("❌ Slack 채널 설정이 필요합니다! 사이드바에서 설정해주세요.")
-        st.session_state.final_submit = False
-        st.stop()
-    
-    try:
-        # 프로그레스 바
-        progress_bar = st.progress(0)
-        status_text = st.empty()
+    # 버튼 클릭 시 처리 (버튼 바로 아래에 표시)
+    if generate_button:
+        meeting_title = st.session_state.meeting_title
+        auto_title = st.session_state.auto_title
+        meeting_date = st.session_state.meeting_date
+        attendees = st.session_state.attendees
+        meeting_notes = st.session_state.meeting_notes
+        action_items = st.session_state.action_items
         
-        # 0. 제목 자동 생성 (필요시)
-        if auto_title:
-            status_text.text("🤖 회의 제목 생성 중...")
-            progress_bar.progress(10)
-            meeting_title = generate_title(meeting_notes)
-            st.info(f"✨ 생성된 제목: **{meeting_title}**")
-            progress_bar.progress(20)
+        # 설정 검증
+        if not st.session_state.user_confluence_token or not st.session_state.user_confluence_space:
+            st.error("❌ Confluence 설정이 필요합니다! 사이드바에서 설정해주세요.")
+            st.stop()
         
-        # 액션아이템을 명확하게 구조화
-        action_items_text = ""
-        if action_items:
-            action_items_text = "\n\n## 사용자 지정 액션아이템 (반드시 포함):\n"
-            for i, item in enumerate(action_items, 1):
-                # 날짜 형식 변환: 2025/10/27 → 2025-10-27
-                due_date = item['due'].replace('/', '-')
-                action_items_text += f"{i}. 작업: {item['task']} | 담당자: {item['assignee']} | 마감일: {due_date}\n"
+        if not st.session_state.user_slack_channel:
+            st.error("❌ Slack 채널 설정이 필요합니다! 사이드바에서 설정해주세요.")
+            st.stop()
         
-        # 1. 구조화
-        status_text.text("📝 회의록 구조화 중...")
-        progress_bar.progress(40)
-        structured_content = structure_meeting_notes(meeting_title, attendees, meeting_date, meeting_notes, action_items_text)
-        
-        # 🔍 디버그: GPT 출력 확인
-        st.write("### 🔍 디버그: GPT가 생성한 원본")
-        st.code(structured_content, language="markdown")
-        
-        # 체크박스 패턴 확인
-        import re
-        checkbox_incomplete = re.findall(r'^- \[ \].+$', structured_content, re.MULTILINE)
-        checkbox_complete = re.findall(r'^- \[[xX]\].+$', structured_content, re.MULTILINE)
-        st.write(f"**발견된 체크박스:** 미완료 {len(checkbox_incomplete)}개, 완료 {len(checkbox_complete)}개")
-        if checkbox_incomplete:
-            st.write("**미완료 항목 예시:**", checkbox_incomplete[0] if checkbox_incomplete else "없음")
-        if checkbox_complete:
-            st.write("**완료 항목 예시:**", checkbox_complete[0] if checkbox_complete else "없음")
-        
-        # 🔍 디버그: 변환된 HTML 확인
-        from utils import markdown_to_confluence_storage
-        html_preview = markdown_to_confluence_storage(structured_content)
-        st.write("### 🔍 디버그: Confluence Storage Format 변환 결과")
-        st.code(html_preview, language="html")
-        
-        # 2. Confluence 업로드
-        status_text.text("📤 Confluence 업로드 중...")
-        progress_bar.progress(60)
-        confluence_result = upload_to_confluence(
-            meeting_title, 
-            structured_content, 
-            meeting_date,
-            st.session_state.user_confluence_username,
-            st.session_state.user_confluence_token,
-            st.session_state.user_confluence_space,
-            st.session_state.user_confluence_parent_id
-        )
-        
-        # 3. Slack 요약
-        status_text.text("📊 Slack 요약 생성 중...")
-        progress_bar.progress(80)
-        slack_summary = create_slack_summary(structured_content)
-        
-        # 4. Slack 전송
-        status_text.text("💬 Slack 전송 중...")
-        progress_bar.progress(90)
-        confluence_url = confluence_result.get('url') if confluence_result.get('success') else None
-        slack_result = send_to_slack(slack_summary, st.session_state.user_slack_channel, confluence_url)
-        
-        progress_bar.progress(100)
-        status_text.text("✅ 완료!")
-        
-        # 결과 표시
-        st.success("🎉 회의록 자동화 완료!")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("📄 Confluence")
-            if confluence_result.get('success'):
-                st.success("✅ 업로드 완료")
-                st.markdown(f"### [📖 회의록 보기]({confluence_result['url']})")
-            else:
-                st.error("❌ 업로드 실패")
-                with st.expander("에러 상세"):
-                    st.code(confluence_result.get('error', 'Unknown error'))
-        
-        with col2:
-            st.subheader("💬 Slack")
-            if slack_result.get('success'):
-                st.success("✅ 메시지 전송 완료")
-                st.info(f"채널: {st.session_state.user_slack_channel}")
-            else:
-                st.error("❌ 전송 실패")
-                with st.expander("에러 상세"):
-                    st.code(slack_result.get('error', 'Unknown error'))
-        
-        # 구조화된 회의록 표시
-        with st.expander("📋 구조화된 회의록 전체 보기", expanded=False):
-            st.markdown(structured_content)
-        
-        # Slack 요약 표시
-        with st.expander("💬 Slack 요약 미리보기", expanded=False):
-            st.markdown(slack_summary)
-        
-        # 세션 리셋 버튼
-        st.markdown("---")
-        if st.button("🔄 새 회의록 작성", use_container_width=True):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            st.rerun()
+        try:
+            # 프로그레스 바
+            progress_bar = st.progress(0)
+            status_text = st.empty()
             
-    except Exception as e:
-        st.error(f"❌ 에러 발생: {e}")
-        with st.expander("상세 에러 정보"):
-            import traceback
-            st.code(traceback.format_exc())
+            # 0. 제목 자동 생성 (필요시)
+            if auto_title:
+                status_text.text("🤖 회의 제목 생성 중...")
+                progress_bar.progress(10)
+                meeting_title = generate_title(meeting_notes)
+                st.info(f"✨ 생성된 제목: **{meeting_title}**")
+                progress_bar.progress(20)
+            
+            # 액션아이템을 명확하게 구조화
+            action_items_text = ""
+            if action_items:
+                action_items_text = "\n\n## 사용자 지정 액션아이템 (반드시 포함):\n"
+                for i, item in enumerate(action_items, 1):
+                    # 날짜 형식 변환: 2025/10/27 → 2025-10-27
+                    due_date = item['due'].replace('/', '-')
+                    action_items_text += f"{i}. 작업: {item['task']} | 담당자: {item['assignee']} | 마감일: {due_date}\n"
+            
+            # 1. 구조화
+            status_text.text("📝 회의록 구조화 중...")
+            progress_bar.progress(40)
+            structured_content = structure_meeting_notes(meeting_title, attendees, meeting_date, meeting_notes, action_items_text)
+            
+            # 🔍 디버그: GPT 출력 확인
+            st.write("### 🔍 디버그: GPT가 생성한 원본")
+            st.code(structured_content, language="markdown")
+            
+            # 체크박스 패턴 확인
+            import re
+            checkbox_incomplete = re.findall(r'^- \[ \].+$', structured_content, re.MULTILINE)
+            checkbox_complete = re.findall(r'^- \[[xX]\].+$', structured_content, re.MULTILINE)
+            st.write(f"**발견된 체크박스:** 미완료 {len(checkbox_incomplete)}개, 완료 {len(checkbox_complete)}개")
+            if checkbox_incomplete:
+                st.write("**미완료 항목 예시:**", checkbox_incomplete[0] if checkbox_incomplete else "없음")
+            if checkbox_complete:
+                st.write("**완료 항목 예시:**", checkbox_complete[0] if checkbox_complete else "없음")
+            
+            # 🔍 디버그: 변환된 HTML 확인
+            from utils import markdown_to_confluence_storage
+            html_preview = markdown_to_confluence_storage(structured_content)
+            st.write("### 🔍 디버그: Confluence Storage Format 변환 결과")
+            st.code(html_preview, language="html")
+            
+            # 2. Confluence 업로드
+            status_text.text("📤 Confluence 업로드 중...")
+            progress_bar.progress(60)
+            confluence_result = upload_to_confluence(
+                meeting_title, 
+                structured_content, 
+                meeting_date,
+                st.session_state.user_confluence_username,
+                st.session_state.user_confluence_token,
+                st.session_state.user_confluence_space,
+                st.session_state.user_confluence_parent_id
+            )
+            
+            # 3. Slack 요약
+            status_text.text("📊 Slack 요약 생성 중...")
+            progress_bar.progress(80)
+            slack_summary = create_slack_summary(structured_content)
+            
+            # 4. Slack 전송
+            status_text.text("💬 Slack 전송 중...")
+            progress_bar.progress(90)
+            confluence_url = confluence_result.get('url') if confluence_result.get('success') else None
+            slack_result = send_to_slack(slack_summary, st.session_state.user_slack_channel, confluence_url)
+            
+            progress_bar.progress(100)
+            status_text.empty()
+            
+            # 완료 팝업
+            st.toast("🎉 회의록 작성 완료!")
+            
+            # 완료 메시지 - 크고 강조된 스타일
+            st.markdown("""
+            <div id="completion-marker" style="text-align: center; padding: 20px; background-color: #d4edda; border-radius: 10px; margin-bottom: 20px;">
+                <h1 style="color: #155724; margin: 0;">✅ 완료!</h1>
+                <p style="color: #155724; font-size: 18px; margin-top: 10px;">회의록이 성공적으로 생성되었습니다.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # 스크롤 스크립트
+            st.components.v1.html("""
+            <script>
+                window.parent.document.getElementById('completion-marker').scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
+            </script>
+            """, height=0)
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.subheader("📄 Confluence")
+                if confluence_result.get('success'):
+                    st.success("✅ 업로드 완료")
+                    st.markdown(f"### [📖 회의록 보기]({confluence_result['url']})")
+                else:
+                    st.error("❌ 업로드 실패")
+                    with st.expander("에러 상세"):
+                        st.code(confluence_result.get('error', 'Unknown error'))
+            
+            with col2:
+                st.subheader("💬 Slack")
+                if slack_result.get('success'):
+                    st.success("✅ 메시지 전송 완료")
+                    st.info(f"채널: {st.session_state.user_slack_channel}")
+                else:
+                    st.error("❌ 전송 실패")
+                    with st.expander("에러 상세"):
+                        st.code(slack_result.get('error', 'Unknown error'))
+            
+            # 구조화된 회의록 표시
+            with st.expander("📋 구조화된 회의록 전체 보기", expanded=False):
+                st.markdown(structured_content)
+            
+            # Slack 요약 표시
+            with st.expander("💬 Slack 요약 미리보기", expanded=False):
+                st.markdown(slack_summary)
+            
+            # 세션 리셋 버튼
+            st.markdown("---")
+            if st.button("🔄 새 회의록 작성", use_container_width=True):
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
+                st.rerun()
+                
+        except Exception as e:
+            st.error(f"❌ 에러 발생: {e}")
+            with st.expander("상세 에러 정보"):
+                import traceback
+                st.code(traceback.format_exc())
 
 # 사이드바 - 개인 설정
 with st.sidebar:
@@ -723,13 +715,18 @@ with st.sidebar:
     )
     
     user_confluence_space = st.text_input(
-        "기본 공간 키",
+        "회의록을 생성할 위키 공간 key",
         value=st.session_state.user_confluence_space,
         placeholder="예: TEAM-A, ~username",
         help="회의록을 저장할 공간 (매번 변경 가능)"
     )
     
-    st.markdown("**상위 페이지 ID (선택사항)**")
+    user_confluence_parent_id = st.text_input(
+        "회의록을 생성할 상위 페이지ID (선택)",
+        value=st.session_state.user_confluence_parent_id,
+        placeholder="예: 123456789 (비워두면 루트에 생성)",
+        help="특정 페이지 하위에 회의록 생성"
+    )
     
     with st.expander("❓ 상위 페이지 ID 확인 방법", expanded=False):
         st.markdown("""
@@ -743,26 +740,16 @@ with st.sidebar:
    pageId=123456789
           ^^^^^^^^^
    ```
-5. 아래 입력란에 붙여넣기
+5. 위 입력란에 붙여넣기
 
 **비워두면?** 공간 루트에 바로 생성됩니다.
         """)
     
-    user_confluence_parent_id = st.text_input(
-        "상위 페이지 ID 입력",
-        value=st.session_state.user_confluence_parent_id,
-        placeholder="예: 123456789 (비워두면 루트에 생성)",
-        help="특정 페이지 하위에 회의록 생성",
-        label_visibility="collapsed"
-    )
-    
     st.markdown("---")
     st.markdown("### 📍 Slack")
     
-    with st.expander("ℹ️ Private 채널 사용 시", expanded=False):
+    with st.expander("먼저 Slack 봇을 채널에 초대해주세요", expanded=False):
         st.markdown("""
-**Private 채널에 회의록 공유하려면:**
-
 1. Slack 채널 열기
 2. 다음 명령어 입력:
    ```
@@ -773,11 +760,52 @@ with st.sidebar:
         """)
     
     user_slack_channel = st.text_input(
-        "기본 채널",
+        "채널명",
         value=st.session_state.user_slack_channel,
         placeholder="예: #team-a, #프로젝트명",
         help="회의록을 공유할 채널 (매번 변경 가능)"
     )
+    
+    st.markdown("---")
+    st.markdown("### 🔔 일일 액션아이템 DM (선택)")
+    
+    with st.expander("❓ 일일 DM이란?", expanded=False):
+        st.markdown("""
+**매일 오전 9시 자동 DM 발송:**
+
+- 📊 미완료 액션아이템 자동 집계
+- ⏰ D-3, D-Day, 기한지남 분류
+- 📄 원본 회의록 링크 포함
+
+**설정 방법:**
+1. 나의 Slack ID 확인
+2. 관리자에게 전달
+3. 설정 완료!
+
+**💡 프로토타입 한계:**
+현재는 LocalStorage 기반이라 자동 DM을 위해
+관리자가 서버 설정 파일에 직접 추가해야 합니다.
+        """)
+    
+    with st.expander("🆔 나의 Slack ID 확인 방법", expanded=False):
+        st.markdown("""
+**Slack ID 확인:**
+
+1. Slack 앱 열기
+2. 나의 프로필 클릭
+3. "⋯ 더보기" → "프로필 보기"
+4. 주소창 URL 확인:
+   ```
+   https://app.slack.com/client/.../U123ABC456
+                                     ^^^^^^^^^
+                                     이 부분이 Slack ID
+   ```
+5. 'U'로 시작하는 ID 복사하여 관리자에게 전달
+
+**또는:**
+1. Slack에서 자신에게 DM 보내기
+2. 주소창 확인
+        """)
     
     st.markdown("---")
     
@@ -834,9 +862,21 @@ with st.sidebar:
                     st.session_state.user_confluence_parent_id = user_confluence_parent_id
                     st.session_state.user_slack_channel = user_slack_channel
                     
-                    st.success("🎉 설정이 성공적으로 저장되었습니다!")
-                    st.info("💡 브라우저를 닫아도 설정이 유지됩니다 (LocalStorage)")
-                    st.balloons()
+                    # 로컬 파일에 저장
+                    config_data = {
+                        'confluence_username': user_confluence_username,
+                        'confluence_token': user_confluence_token,
+                        'confluence_space': user_confluence_space,
+                        'confluence_parent_id': user_confluence_parent_id,
+                        'slack_channel': user_slack_channel
+                    }
+                    
+                    if save_user_config(config_data):
+                        st.success("🎉 설정이 성공적으로 저장되었습니다!")
+                        st.info(f"💡 설정이 로컬 파일에 저장되었습니다: `{CONFIG_FILE}`\n브라우저를 새로고침해도 설정이 유지됩니다!")
+                        st.balloons()
+                    else:
+                        st.warning("⚠️ 설정이 세션에는 저장되었지만, 파일 저장에 실패했습니다.")
                 else:
                     st.warning("⚠️ 위 오류를 수정 후 다시 시도해주세요")
     
@@ -874,10 +914,10 @@ with st.sidebar:
     
     with st.expander("✨ 주요 기능"):
         st.markdown("""
-- **AI 자동 추출**: 회의 내용에서 액션아이템 자동 감지
-- **실시간 편집**: 추출된 액션아이템 수정 가능
-- **캘린더 통합**: Confluence에서 듀데이트 클릭 가능
 - **GPT-4o**: 최신 모델로 정확한 구조화
+- **AI 자동화**: 회의록 작성 및 회의 내용에서 액션아이템 자동 감지, 회의록 발행 및 슬랙 요약 공유
+- **실시간 편집**: 추출된 액션아이템 수정 가능
+- **스케줄러**: 액션아이템의 상태를 매일 오전 슬랙으로 리마인드
         """)
     
     st.markdown("---")
